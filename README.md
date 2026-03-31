@@ -79,6 +79,8 @@ In that mode, upload these two files as release assets:
 - `dist/restic.plg`
 - `dist/packages/restic-<version>-noarch-1.txz`
 
+This repo also includes a GitHub Actions workflow at `.github/workflows/release.yml` that creates or updates the tagged release and uploads those two assets when `main` is pushed with a matching `VERSION` and `v<version>` tag already present.
+
 After that, install the plugin in Unraid from:
 
 ```text
