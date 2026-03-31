@@ -14,6 +14,7 @@
   <CHANGES><![CDATA[
 ### @VERSION@
 
+- Remove the custom CSRF gate that was blocking valid button actions
 - Ship the page as `Restic.page` directly and use theme-aware styling
 - Make initial restic download more reliable on Unraid by preferring curl/wget
 - Fix the Settings page format for Unraid page rendering
