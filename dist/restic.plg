@@ -1,0 +1,52 @@
+<?xml version="1.0" standalone="yes"?>
+<!DOCTYPE PLUGIN [
+<!ENTITY name "restic">
+<!ENTITY author "Till Hermsen">
+<!ENTITY launch "Settings/restic">
+<!ENTITY plugdir "/usr/local/emhttp/plugins/&name;">
+<!ENTITY pluginURL "https://raw.githubusercontent.com/your-user/unraid-restic-plugin/main/dist/restic.plg">
+<!ENTITY version "2026.03.31.1">
+<!ENTITY packageURL "https://raw.githubusercontent.com/your-user/unraid-restic-plugin/main/dist/packages/restic-2026.03.31.1-noarch-1.txz">
+<!ENTITY md5 "ad655e5ed6b07378ba99564eafddf6d3">
+<!ENTITY support "https://github.com/your-user/unraid-restic-plugin">
+]>
+<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" icon="archive" support="&support;" min="7.0.0">
+  <CHANGES>
+### 2026.03.31.1
+
+- Initial release
+- Installs and manages the latest stable restic release
+- Adds a minimal status, update and remove UI for Unraid 7
+  </CHANGES>
+
+  <FILE Name="/boot/config/plugins/&name;/restic-&version;-noarch-1.txz" Run="upgradepkg --install-new">
+    <URL>&packageURL;</URL>
+    <MD5>&md5;</MD5>
+  </FILE>
+
+  <FILE Run="/bin/bash">
+    <INLINE>
+mkdir -p /boot/config/plugins/&name;
+rm -f $(ls /boot/config/plugins/&name;/restic-*.txz 2>/dev/null | grep -v '&version;');
+echo "&version;" > /boot/config/plugins/&name;/plugin-version;
+/usr/local/sbin/restic-manager ensure-runtime || true;
+
+echo "";
+echo "----------------------------------------------------";
+echo " restic plugin has been installed.";
+echo " Plugin version: &version;";
+echo " Managed binary: /usr/local/bin/restic";
+echo "----------------------------------------------------";
+echo "";
+    </INLINE>
+  </FILE>
+
+  <FILE Run="/bin/bash" Method="remove">
+    <INLINE>
+/usr/local/sbin/restic-manager remove || true;
+removepkg restic >/dev/null 2>&1 || true;
+rm -rf &plugdir;
+rm -rf /boot/config/plugins/&name;
+    </INLINE>
+  </FILE>
+</PLUGIN>

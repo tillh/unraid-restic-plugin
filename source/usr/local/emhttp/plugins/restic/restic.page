@@ -1,0 +1,220 @@
+<?php
+declare(strict_types=1);
+?>
+<style>
+  #restic-manager-page {
+    max-width: 720px;
+  }
+
+  #restic-manager-page .restic-card {
+    background: #f7f7f7;
+    border: 1px solid #d8d8d8;
+    border-radius: 8px;
+    padding: 24px;
+  }
+
+  #restic-manager-page .restic-title {
+    font-size: 28px;
+    font-weight: 600;
+    margin: 0 0 6px;
+  }
+
+  #restic-manager-page .restic-subtitle {
+    color: #666;
+    margin: 0 0 24px;
+  }
+
+  #restic-manager-page dl {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 12px 18px;
+    margin: 0 0 24px;
+  }
+
+  #restic-manager-page dt {
+    color: #666;
+    font-weight: 600;
+  }
+
+  #restic-manager-page dd {
+    margin: 0;
+    word-break: break-word;
+  }
+
+  #restic-manager-page .restic-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  #restic-manager-page .restic-actions .btn[hidden] {
+    display: none;
+  }
+
+  #restic-manager-page .restic-note,
+  #restic-manager-page .restic-message {
+    margin-top: 18px;
+  }
+
+  #restic-manager-page .restic-message {
+    min-height: 20px;
+  }
+
+  #restic-manager-page .restic-message.is-error {
+    color: #b00020;
+  }
+
+  @media (max-width: 640px) {
+    #restic-manager-page dl {
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+  }
+</style>
+
+<div id="restic-manager-page">
+  <div class="restic-card">
+    <h1 class="restic-title">Restic</h1>
+    <p class="restic-subtitle">Use <code>restic</code> in the console and in User Scripts without managing binaries manually.</p>
+
+    <dl>
+      <dt>Installed version</dt>
+      <dd id="restic-installed-version">Loading...</dd>
+
+      <dt>Latest version</dt>
+      <dd id="restic-latest-version">Loading...</dd>
+
+      <dt>Binary path</dt>
+      <dd id="restic-binary-path">/usr/local/bin/restic</dd>
+
+      <dt>Manager path</dt>
+      <dd id="restic-manager-path">/usr/local/sbin/restic-manager</dd>
+    </dl>
+
+    <div class="restic-actions">
+      <button class="btn btn-primary" id="restic-install-update-button" type="button">Install latest</button>
+      <button class="btn btn-default" id="restic-remove-button" type="button">Remove restic</button>
+    </div>
+
+    <p class="restic-note">Commands: <code>restic version</code>, <code>restic-manager status</code>, <code>restic-manager update</code>.</p>
+    <div class="restic-message" id="restic-message"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const apiPath = '/plugins/restic/scripts/restic-api.php';
+  const installButton = document.getElementById('restic-install-update-button');
+  const removeButton = document.getElementById('restic-remove-button');
+  const installedVersion = document.getElementById('restic-installed-version');
+  const latestVersion = document.getElementById('restic-latest-version');
+  const binaryPath = document.getElementById('restic-binary-path');
+  const managerPath = document.getElementById('restic-manager-path');
+  const message = document.getElementById('restic-message');
+
+  async function request(action, method = 'GET') {
+    const url = action === 'status' ? `${apiPath}?action=${encodeURIComponent(action)}` : apiPath;
+    const options = { method };
+
+    if (method !== 'GET') {
+      options.headers = { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' };
+      options.body = `action=${encodeURIComponent(action)}`;
+    }
+
+    const response = await fetch(url, options);
+    const payload = await response.json();
+
+    if (!response.ok || payload.success === false) {
+      throw new Error(payload.error || payload.message || 'Request failed');
+    }
+
+    return payload;
+  }
+
+  function setBusy(isBusy) {
+    installButton.disabled = isBusy;
+    removeButton.disabled = isBusy;
+  }
+
+  function setMessage(text, isError = false) {
+    message.textContent = text || '';
+    message.classList.toggle('is-error', Boolean(isError));
+  }
+
+  function renderStatus(status) {
+    installedVersion.textContent = status.installed ? (status.installedVersion || 'Unknown') : 'Not installed';
+    latestVersion.textContent = status.latestVersion || 'Unavailable';
+    binaryPath.textContent = status.binaryPath || '/usr/local/bin/restic';
+    managerPath.textContent = status.managerPath || '/usr/local/sbin/restic-manager';
+
+    if (!status.installed) {
+      installButton.hidden = false;
+      installButton.textContent = status.latestVersion ? `Install ${status.latestVersion}` : 'Install latest';
+      removeButton.hidden = true;
+      return;
+    }
+
+    removeButton.hidden = false;
+
+    if (status.updateAvailable) {
+      installButton.hidden = false;
+      installButton.textContent = `Update to ${status.latestVersion}`;
+    } else {
+      installButton.hidden = true;
+      installButton.textContent = 'Install latest';
+    }
+  }
+
+  async function refreshStatus(messageText = '') {
+    setBusy(true);
+
+    try {
+      const payload = await request('status');
+      renderStatus(payload.status);
+      setMessage(messageText || payload.status.note || '', false);
+    } catch (error) {
+      setMessage(error.message, true);
+      installedVersion.textContent = 'Unavailable';
+      latestVersion.textContent = 'Unavailable';
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  installButton.addEventListener('click', async () => {
+    setBusy(true);
+    setMessage('Working...');
+
+    try {
+      const payload = await request('install', 'POST');
+      renderStatus(payload.status);
+      setMessage(payload.message || 'Completed.', false);
+    } catch (error) {
+      setMessage(error.message, true);
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  removeButton.addEventListener('click', async () => {
+    if (!window.confirm('Remove the managed restic binary from this server?')) {
+      return;
+    }
+
+    setBusy(true);
+    setMessage('Removing...');
+
+    try {
+      const payload = await request('remove', 'POST');
+      renderStatus(payload.status);
+      setMessage(payload.message || 'Removed.', false);
+    } catch (error) {
+      setMessage(error.message, true);
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  refreshStatus();
+})();
+</script>
