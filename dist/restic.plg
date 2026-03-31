@@ -4,16 +4,17 @@
 <!ENTITY author "Till Hermsen">
 <!ENTITY launch "Settings/Restic">
 <!ENTITY plugdir "/usr/local/emhttp/plugins/&name;">
-<!ENTITY pluginURL "https://github.com/tillh/unraid-restic-plugin/releases/download/v2026.03.31.5/restic.plg">
-<!ENTITY version "2026.03.31.5">
-<!ENTITY packageURL "https://github.com/tillh/unraid-restic-plugin/releases/download/v2026.03.31.5/restic-2026.03.31.5-noarch-1.txz">
-<!ENTITY md5 "f8c44b30954f9e57472e6cf90a8012a5">
+<!ENTITY pluginURL "https://github.com/tillh/unraid-restic-plugin/releases/download/v2026.03.31.6/restic.plg">
+<!ENTITY version "2026.03.31.6">
+<!ENTITY packageURL "https://github.com/tillh/unraid-restic-plugin/releases/download/v2026.03.31.6/restic-2026.03.31.6-noarch-1.txz">
+<!ENTITY md5 "a4f72fb22c13457e8239c73f1272792f">
 <!ENTITY support "https://github.com/tillh/unraid-restic-plugin">
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" icon="archive" support="&support;" min="7.0.0">
   <CHANGES><![CDATA[
-### 2026.03.31.5
+### 2026.03.31.6
 
+- Use GET-based action requests and show raw backend errors instead of a generic JSON parse failure
 - Remove the custom CSRF gate that was blocking valid button actions
 - Ship the page as `Restic.page` directly and use theme-aware styling
 - Make initial restic download more reliable on Unraid by preferring curl/wget

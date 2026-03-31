@@ -120,17 +120,27 @@ if (!isset($var) || !is_array($var)) {
   const managerPath = document.getElementById('restic-manager-path');
   const message = document.getElementById('restic-message');
 
-  async function request(action, method = 'GET') {
-    const url = action === 'status' ? `${apiPath}?action=${encodeURIComponent(action)}` : apiPath;
-    const options = { method };
+  async function request(action) {
+    const url = `${apiPath}?action=${encodeURIComponent(action)}&_=${Date.now()}`;
+    const options = {
+      method: 'GET',
+      cache: 'no-store',
+      headers: { 'Accept': 'application/json' }
+    };
+    const response = await fetch(url, options);
+    const text = await response.text();
 
-    if (method !== 'GET') {
-      options.headers = { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' };
-      options.body = `action=${encodeURIComponent(action)}`;
+    if (!text.trim()) {
+      throw new Error('Server returned an empty response. Try restic-manager install in the console and send its output.');
     }
 
-    const response = await fetch(url, options);
-    const payload = await response.json();
+    let payload;
+
+    try {
+      payload = JSON.parse(text);
+    } catch (error) {
+      throw new Error(text.trim());
+    }
 
     if (!response.ok || payload.success === false) {
       throw new Error(payload.error || payload.message || 'Request failed');
@@ -194,7 +204,7 @@ if (!isset($var) || !is_array($var)) {
     setMessage('Working...');
 
     try {
-      const payload = await request('install', 'POST');
+      const payload = await request('install');
       renderStatus(payload.status);
       setMessage(payload.message || 'Completed.', false);
     } catch (error) {
@@ -213,7 +223,7 @@ if (!isset($var) || !is_array($var)) {
     setMessage('Removing...');
 
     try {
-      const payload = await request('remove', 'POST');
+      const payload = await request('remove');
       renderStatus(payload.status);
       setMessage(payload.message || 'Removed.', false);
     } catch (error) {
