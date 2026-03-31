@@ -16,10 +16,11 @@ $csrfToken = isset($var['csrf_token']) ? (string) $var['csrf_token'] : '';
   }
 
   #restic-manager-page .restic-card {
-    background: #f7f7f7;
-    border: 1px solid #d8d8d8;
+    background: var(--background, #f7f7f7);
+    border: 1px solid var(--border, #d8d8d8);
     border-radius: 8px;
     padding: 24px;
+    color: var(--text, #1f1f1f);
   }
 
   #restic-manager-page .restic-title {
@@ -29,7 +30,7 @@ $csrfToken = isset($var['csrf_token']) ? (string) $var['csrf_token'] : '';
   }
 
   #restic-manager-page .restic-subtitle {
-    color: #666;
+    color: var(--text-secondary, #666);
     margin: 0 0 24px;
   }
 
@@ -41,7 +42,7 @@ $csrfToken = isset($var['csrf_token']) ? (string) $var['csrf_token'] : '';
   }
 
   #restic-manager-page dt {
-    color: #666;
+    color: var(--text-secondary, #666);
     font-weight: 600;
   }
 
@@ -70,7 +71,7 @@ $csrfToken = isset($var['csrf_token']) ? (string) $var['csrf_token'] : '';
   }
 
   #restic-manager-page .restic-message.is-error {
-    color: #b00020;
+    color: var(--error, #b00020);
   }
 
   @media (max-width: 640px) {

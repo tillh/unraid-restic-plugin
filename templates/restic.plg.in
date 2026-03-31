@@ -14,6 +14,7 @@
   <CHANGES><![CDATA[
 ### @VERSION@
 
+- Ship the page as `Restic.page` directly and use theme-aware styling
 - Make initial restic download more reliable on Unraid by preferring curl/wget
 - Fix the Settings page format for Unraid page rendering
 - Persist the plugin file properly so Unraid lists it as installed

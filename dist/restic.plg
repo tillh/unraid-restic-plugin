@@ -4,16 +4,17 @@
 <!ENTITY author "Till Hermsen">
 <!ENTITY launch "Settings/Restic">
 <!ENTITY plugdir "/usr/local/emhttp/plugins/&name;">
-<!ENTITY pluginURL "https://github.com/tillh/unraid-restic-plugin/releases/download/v2026.03.31.3/restic.plg">
-<!ENTITY version "2026.03.31.3">
-<!ENTITY packageURL "https://github.com/tillh/unraid-restic-plugin/releases/download/v2026.03.31.3/restic-2026.03.31.3-noarch-1.txz">
-<!ENTITY md5 "2e722684b82f2d0d913e337bd13c6107">
+<!ENTITY pluginURL "https://github.com/tillh/unraid-restic-plugin/releases/download/v2026.03.31.4/restic.plg">
+<!ENTITY version "2026.03.31.4">
+<!ENTITY packageURL "https://github.com/tillh/unraid-restic-plugin/releases/download/v2026.03.31.4/restic-2026.03.31.4-noarch-1.txz">
+<!ENTITY md5 "fecc956b82aa90f88f09c99ac2eedb55">
 <!ENTITY support "https://github.com/tillh/unraid-restic-plugin">
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" icon="archive" support="&support;" min="7.0.0">
   <CHANGES><![CDATA[
-### 2026.03.31.3
+### 2026.03.31.4
 
+- Ship the page as `Restic.page` directly and use theme-aware styling
 - Make initial restic download more reliable on Unraid by preferring curl/wget
 - Fix the Settings page format for Unraid page rendering
 - Persist the plugin file properly so Unraid lists it as installed
