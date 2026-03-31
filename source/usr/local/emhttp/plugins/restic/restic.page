@@ -1,5 +1,14 @@
+Menu="Settings"
+Title="Restic"
+Icon="archive"
+Type="php"
+---
 <?php
-declare(strict_types=1);
+if (!isset($var) || !is_array($var)) {
+    $var = parse_ini_file('/var/local/emhttp/var.ini');
+}
+
+$csrfToken = isset($var['csrf_token']) ? (string) $var['csrf_token'] : '';
 ?>
 <style>
   #restic-manager-page {
@@ -104,6 +113,7 @@ declare(strict_types=1);
 <script>
 (() => {
   const apiPath = '/plugins/restic/scripts/restic-api.php';
+  const csrfToken = <?php echo json_encode($csrfToken, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
   const installButton = document.getElementById('restic-install-update-button');
   const removeButton = document.getElementById('restic-remove-button');
   const installedVersion = document.getElementById('restic-installed-version');
@@ -118,7 +128,7 @@ declare(strict_types=1);
 
     if (method !== 'GET') {
       options.headers = { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' };
-      options.body = `action=${encodeURIComponent(action)}`;
+      options.body = `action=${encodeURIComponent(action)}&csrf_token=${encodeURIComponent(csrfToken)}`;
     }
 
     const response = await fetch(url, options);

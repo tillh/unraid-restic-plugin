@@ -1,4 +1,3 @@
-#!/usr/bin/php
 <?php
 declare(strict_types=1);
 
@@ -342,6 +341,16 @@ final class ResticManager
 
     private static function downloadText(string $url, array $extraHeaders = []): string
     {
+        $curlContents = self::downloadTextViaCommand('curl', $url, $extraHeaders);
+        if ($curlContents !== null) {
+            return $curlContents;
+        }
+
+        $wgetContents = self::downloadTextViaCommand('wget', $url, $extraHeaders);
+        if ($wgetContents !== null) {
+            return $wgetContents;
+        }
+
         $stream = self::openRemoteStream($url, $extraHeaders);
         $contents = stream_get_contents($stream);
         fclose($stream);
@@ -355,6 +364,14 @@ final class ResticManager
 
     private static function downloadToFile(string $url, string $destination): void
     {
+        if (self::downloadToFileViaCommand('curl', $url, $destination)) {
+            return;
+        }
+
+        if (self::downloadToFileViaCommand('wget', $url, $destination)) {
+            return;
+        }
+
         $stream = self::openRemoteStream($url);
         $output = fopen($destination, 'wb');
 
@@ -406,6 +423,132 @@ final class ResticManager
         }
 
         return $stream;
+    }
+
+    private static function downloadTextViaCommand(string $command, string $url, array $extraHeaders = []): ?string
+    {
+        if (!self::commandExists($command)) {
+            return null;
+        }
+
+        $headers = self::normalizeHeaders($extraHeaders);
+
+        try {
+            if ($command === 'curl') {
+                $args = array_merge([
+                    'curl',
+                    '--fail',
+                    '--silent',
+                    '--show-error',
+                    '--location',
+                    '--connect-timeout',
+                    '20',
+                    '--max-time',
+                    '120',
+                    '--user-agent',
+                    RESTIC_HTTP_USER_AGENT,
+                ], self::curlHeaderArguments($headers), [$url]);
+
+                return self::runCommand($args);
+            }
+
+            $args = array_merge([
+                'wget',
+                '-qO-',
+                '--timeout=120',
+                '--user-agent=' . RESTIC_HTTP_USER_AGENT,
+            ], self::wgetHeaderArguments($headers), [$url]);
+
+            return self::runCommand($args);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private static function downloadToFileViaCommand(string $command, string $url, string $destination): bool
+    {
+        if (!self::commandExists($command)) {
+            return false;
+        }
+
+        try {
+            if ($command === 'curl') {
+                self::runCommand([
+                    'curl',
+                    '--fail',
+                    '--silent',
+                    '--show-error',
+                    '--location',
+                    '--connect-timeout',
+                    '20',
+                    '--max-time',
+                    '300',
+                    '--user-agent',
+                    RESTIC_HTTP_USER_AGENT,
+                    '--output',
+                    $destination,
+                    $url,
+                ]);
+
+                return true;
+            }
+
+            self::runCommand([
+                'wget',
+                '-qO',
+                $destination,
+                '--timeout=300',
+                '--user-agent=' . RESTIC_HTTP_USER_AGENT,
+                $url,
+            ]);
+
+            return true;
+        } catch (\Throwable) {
+            self::deleteIfExists($destination);
+            return false;
+        }
+    }
+
+    private static function commandExists(string $command): bool
+    {
+        $path = trim((string) shell_exec(sprintf('command -v %s 2>/dev/null', escapeshellarg($command))));
+        return $path !== '';
+    }
+
+    private static function normalizeHeaders(array $extraHeaders): array
+    {
+        $headers = [];
+
+        foreach ($extraHeaders as $header) {
+            if (is_string($header) && trim($header) !== '') {
+                $headers[] = trim($header);
+            }
+        }
+
+        return $headers;
+    }
+
+    private static function curlHeaderArguments(array $headers): array
+    {
+        $args = [];
+
+        foreach ($headers as $header) {
+            $args[] = '--header';
+            $args[] = $header;
+        }
+
+        return $args;
+    }
+
+    private static function wgetHeaderArguments(array $headers): array
+    {
+        $args = [];
+
+        foreach ($headers as $header) {
+            $args[] = '--header=' . $header;
+        }
+
+        return $args;
     }
 
     private static function extractStatusCode(array $headers): int

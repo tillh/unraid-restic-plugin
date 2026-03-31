@@ -4,16 +4,18 @@
 <!ENTITY author "Till Hermsen">
 <!ENTITY launch "Settings/Restic">
 <!ENTITY plugdir "/usr/local/emhttp/plugins/&name;">
-<!ENTITY pluginURL "https://github.com/tillh/unraid-restic-plugin/releases/download/v2026.03.31.2/restic.plg">
-<!ENTITY version "2026.03.31.2">
-<!ENTITY packageURL "https://github.com/tillh/unraid-restic-plugin/releases/download/v2026.03.31.2/restic-2026.03.31.2-noarch-1.txz">
-<!ENTITY md5 "c97da3e5eedbd9de42aab9a9a46f7ebb">
+<!ENTITY pluginURL "https://github.com/tillh/unraid-restic-plugin/releases/download/v2026.03.31.3/restic.plg">
+<!ENTITY version "2026.03.31.3">
+<!ENTITY packageURL "https://github.com/tillh/unraid-restic-plugin/releases/download/v2026.03.31.3/restic-2026.03.31.3-noarch-1.txz">
+<!ENTITY md5 "2e722684b82f2d0d913e337bd13c6107">
 <!ENTITY support "https://github.com/tillh/unraid-restic-plugin">
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" icon="archive" support="&support;" min="7.0.0">
   <CHANGES><![CDATA[
-### 2026.03.31.2
+### 2026.03.31.3
 
+- Make initial restic download more reliable on Unraid by preferring curl/wget
+- Fix the Settings page format for Unraid page rendering
 - Persist the plugin file properly so Unraid lists it as installed
 - Expose `/usr/local/bin/restic` immediately via a managed wrapper
 - Initial release
@@ -35,7 +37,9 @@
 mkdir -p /boot/config/plugins/&name;
 rm -f $(ls /boot/config/plugins/&name;/restic-*.txz 2>/dev/null | grep -v '&version;');
 echo "&version;" > /boot/config/plugins/&name;/plugin-version;
-/usr/local/sbin/restic-manager ensure-runtime || true;
+if ! /usr/local/sbin/restic-manager ensure-runtime; then
+  echo "Initial restic download failed. Run 'restic-manager install' after checking network access to GitHub.";
+fi
 
 echo "";
 echo "----------------------------------------------------";
