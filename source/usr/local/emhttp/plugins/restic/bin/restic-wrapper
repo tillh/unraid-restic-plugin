@@ -1,7 +1,14 @@
 #!/bin/bash
 set -euo pipefail
 
-REAL_BINARY="/boot/config/plugins/restic/bin/restic"
+REAL_BINARY="/usr/local/emhttp/plugins/restic/bin/restic-real"
+MANAGER="/usr/local/sbin/restic-manager"
+
+if [[ ! -x "${REAL_BINARY}" ]]; then
+  if [[ -x "${MANAGER}" ]]; then
+    "${MANAGER}" ensure-runtime >/dev/null 2>&1 || true
+  fi
+fi
 
 if [[ ! -x "${REAL_BINARY}" ]]; then
   echo "restic is not installed yet. Run 'restic-manager install' or use Settings -> Restic." >&2

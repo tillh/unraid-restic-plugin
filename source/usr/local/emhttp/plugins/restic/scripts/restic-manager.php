@@ -8,6 +8,7 @@ const RESTIC_BIN_DIR = RESTIC_DATA_DIR . '/bin';
 const RESTIC_STATE_FILE = RESTIC_DATA_DIR . '/state.json';
 const RESTIC_PERSISTENT_BINARY = RESTIC_BIN_DIR . '/restic';
 const RESTIC_RUNTIME_BINARY = '/usr/local/bin/restic';
+const RESTIC_RUNTIME_REAL_BINARY = RESTIC_PLUGIN_DIR . '/bin/restic-real';
 const RESTIC_WRAPPER_BINARY = RESTIC_PLUGIN_DIR . '/bin/restic-wrapper';
 const RESTIC_MANAGER_PATH = '/usr/local/sbin/restic-manager';
 const RESTIC_RELEASE_API = 'https://api.github.com/repos/restic/restic/releases/latest';
@@ -22,6 +23,7 @@ final class ResticManager
         $latestVersion = null;
         $latestTag = null;
         $latestError = null;
+        $runtimeError = null;
 
         if ($checkLatest) {
             try {
@@ -38,7 +40,14 @@ final class ResticManager
             $updateAvailable = version_compare($installedVersion, $latestVersion, '<');
         }
 
-        self::ensureRuntimeLink();
+        try {
+            self::ensureRuntimeLink();
+            if ($installed) {
+                self::syncRuntimeBinary();
+            }
+        } catch (\Throwable $throwable) {
+            $runtimeError = $throwable->getMessage();
+        }
 
         $runtimeLink = null;
         if (is_link(RESTIC_RUNTIME_BINARY)) {
@@ -53,6 +62,10 @@ final class ResticManager
             $note = $note . ' Latest version check failed: ' . $latestError;
         }
 
+        if ($runtimeError !== null) {
+            $note = $note . ' Runtime issue: ' . $runtimeError;
+        }
+
         return [
             'installed' => $installed,
             'installedVersion' => $installedVersion,
@@ -63,6 +76,7 @@ final class ResticManager
             'persistentBinaryPath' => RESTIC_PERSISTENT_BINARY,
             'managerPath' => RESTIC_MANAGER_PATH,
             'runtimeLink' => $runtimeLink,
+            'runtimeBinaryPath' => RESTIC_RUNTIME_REAL_BINARY,
             'note' => $note,
         ];
     }
@@ -75,10 +89,11 @@ final class ResticManager
         $currentVersion = self::hasPersistentBinary() ? self::detectInstalledVersion() : null;
 
         if ($currentVersion !== null && version_compare($currentVersion, $release['version'], '>=')) {
-        self::ensureRuntimeLink();
+            self::ensureRuntimeLink();
+            self::syncRuntimeBinary();
 
-        return [
-            'message' => sprintf('restic %s is already installed.', $currentVersion),
+            return [
+                'message' => sprintf('restic %s is already installed.', $currentVersion),
                 'status' => self::status(true),
             ];
         }
@@ -122,6 +137,7 @@ final class ResticManager
         ]);
 
         self::ensureRuntimeLink();
+        self::syncRuntimeBinary(true);
 
         return [
             'message' => sprintf('Installed restic %s.', $release['version']),
@@ -135,6 +151,8 @@ final class ResticManager
         if (!self::hasPersistentBinary()) {
             return self::installLatest();
         }
+
+        self::syncRuntimeBinary();
 
         return [
             'message' => sprintf('Runtime ready for restic %s.', self::detectInstalledVersion() ?? 'unknown'),
@@ -152,6 +170,7 @@ final class ResticManager
         }
 
         self::deleteIfExists(RESTIC_PERSISTENT_BINARY);
+        self::deleteIfExists(RESTIC_RUNTIME_REAL_BINARY);
         self::deleteIfExists(RESTIC_BIN_DIR . '/restic.download.bz2');
         self::deleteIfExists(RESTIC_BIN_DIR . '/restic.new');
         self::deleteIfExists(RESTIC_STATE_FILE);
@@ -246,7 +265,7 @@ final class ResticManager
 
     private static function hasPersistentBinary(): bool
     {
-        return is_file(RESTIC_PERSISTENT_BINARY) && is_executable(RESTIC_PERSISTENT_BINARY);
+        return is_file(RESTIC_PERSISTENT_BINARY) && filesize(RESTIC_PERSISTENT_BINARY) > 0;
     }
 
     private static function detectInstalledVersion(): ?string
@@ -257,7 +276,8 @@ final class ResticManager
         }
 
         try {
-            $output = self::runCommand([RESTIC_PERSISTENT_BINARY, 'version', '--json']);
+            self::syncRuntimeBinary();
+            $output = self::runCommand([RESTIC_RUNTIME_REAL_BINARY, 'version', '--json']);
             $payload = json_decode($output, true, 512, JSON_THROW_ON_ERROR);
             if (isset($payload['version']) && is_string($payload['version'])) {
                 return ltrim($payload['version'], 'v');
@@ -266,7 +286,8 @@ final class ResticManager
         }
 
         try {
-            $output = self::runCommand([RESTIC_PERSISTENT_BINARY, 'version']);
+            self::syncRuntimeBinary();
+            $output = self::runCommand([RESTIC_RUNTIME_REAL_BINARY, 'version']);
             if (preg_match('/restic\s+([0-9]+\.[0-9]+\.[0-9]+)/i', $output, $matches) === 1) {
                 return $matches[1];
             }
@@ -275,6 +296,50 @@ final class ResticManager
 
         $state = self::readState();
         return isset($state['installed_version']) ? (string) $state['installed_version'] : null;
+    }
+
+    private static function syncRuntimeBinary(bool $force = false): void
+    {
+        if (!self::hasPersistentBinary()) {
+            throw new \RuntimeException('No managed restic binary is installed.');
+        }
+
+        if (!$force && self::runtimeBinaryIsCurrent()) {
+            return;
+        }
+
+        $temporaryPath = RESTIC_RUNTIME_REAL_BINARY . '.new';
+        self::deleteIfExists($temporaryPath);
+
+        if (!@copy(RESTIC_PERSISTENT_BINARY, $temporaryPath)) {
+            throw new \RuntimeException(sprintf(
+                'Unable to copy restic into runtime path %s.',
+                RESTIC_RUNTIME_REAL_BINARY
+            ));
+        }
+
+        if (!@chmod($temporaryPath, 0755)) {
+            self::deleteIfExists($temporaryPath);
+            throw new \RuntimeException(sprintf(
+                'Unable to mark runtime binary executable at %s.',
+                $temporaryPath
+            ));
+        }
+
+        self::moveIntoPlace($temporaryPath, RESTIC_RUNTIME_REAL_BINARY);
+    }
+
+    private static function runtimeBinaryIsCurrent(): bool
+    {
+        if (!is_file(RESTIC_RUNTIME_REAL_BINARY) || !is_executable(RESTIC_RUNTIME_REAL_BINARY)) {
+            return false;
+        }
+
+        if (filesize(RESTIC_RUNTIME_REAL_BINARY) !== filesize(RESTIC_PERSISTENT_BINARY)) {
+            return false;
+        }
+
+        return hash_file('sha256', RESTIC_RUNTIME_REAL_BINARY) === hash_file('sha256', RESTIC_PERSISTENT_BINARY);
     }
 
     private static function ensureRuntimeLink(): void
