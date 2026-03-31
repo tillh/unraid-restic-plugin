@@ -5,7 +5,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NAME="restic"
 VERSION="$(tr -d '\n' < "${ROOT_DIR}/VERSION")"
 
-RAW_BASE_URL="${RAW_BASE_URL:-https://raw.githubusercontent.com/your-user/unraid-restic-plugin/main/dist}"
+ARTIFACT_BASE_URL="${ARTIFACT_BASE_URL:-${RAW_BASE_URL:-https://raw.githubusercontent.com/your-user/unraid-restic-plugin/main/dist}}"
+PACKAGE_SUBDIR="${PACKAGE_SUBDIR-packages}"
 SUPPORT_URL="${SUPPORT_URL:-https://github.com/your-user/unraid-restic-plugin}"
 
 DIST_DIR="${ROOT_DIR}/dist"
@@ -30,8 +31,12 @@ else
   exit 1
 fi
 
-PLUGIN_URL="${RAW_BASE_URL%/}/${NAME}.plg"
-PACKAGE_URL="${RAW_BASE_URL%/}/packages/${PACKAGE_NAME}"
+PLUGIN_URL="${ARTIFACT_BASE_URL%/}/${NAME}.plg"
+if [[ -n "${PACKAGE_SUBDIR}" ]]; then
+  PACKAGE_URL="${ARTIFACT_BASE_URL%/}/${PACKAGE_SUBDIR}/${PACKAGE_NAME}"
+else
+  PACKAGE_URL="${ARTIFACT_BASE_URL%/}/${PACKAGE_NAME}"
+fi
 
 sed \
   -e "s|@VERSION@|${VERSION}|g" \
@@ -43,4 +48,4 @@ sed \
 
 echo "Built package: ${PACKAGE_PATH}"
 echo "Built plugin:  ${PLG_PATH}"
-echo "Raw base URL:  ${RAW_BASE_URL}"
+echo "Artifact URL:  ${ARTIFACT_BASE_URL}"

@@ -4,11 +4,11 @@
 <!ENTITY author "Till Hermsen">
 <!ENTITY launch "Settings/restic">
 <!ENTITY plugdir "/usr/local/emhttp/plugins/&name;">
-<!ENTITY pluginURL "https://raw.githubusercontent.com/your-user/unraid-restic-plugin/main/dist/restic.plg">
+<!ENTITY pluginURL "https://github.com/tillh/unraid-restic-plugin/releases/download/v2026.03.31.1/restic.plg">
 <!ENTITY version "2026.03.31.1">
-<!ENTITY packageURL "https://raw.githubusercontent.com/your-user/unraid-restic-plugin/main/dist/packages/restic-2026.03.31.1-noarch-1.txz">
+<!ENTITY packageURL "https://github.com/tillh/unraid-restic-plugin/releases/download/v2026.03.31.1/restic-2026.03.31.1-noarch-1.txz">
 <!ENTITY md5 "ad655e5ed6b07378ba99564eafddf6d3">
-<!ENTITY support "https://github.com/your-user/unraid-restic-plugin">
+<!ENTITY support "https://github.com/tillh/unraid-restic-plugin">
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" icon="archive" support="&support;" min="7.0.0">
   <CHANGES>

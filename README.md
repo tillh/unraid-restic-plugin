@@ -44,13 +44,13 @@ Generated output directory for the installable artifacts.
 
 ## Build
 
-1. Set the raw base URL that will host the finished files.
+1. Set the base URL that will host the finished files.
 2. Run the build script.
 
 Example:
 
 ```bash
-RAW_BASE_URL="https://raw.githubusercontent.com/<your-user>/<your-repo>/main/dist" \
+ARTIFACT_BASE_URL="https://raw.githubusercontent.com/<your-user>/<your-repo>/main/dist" \
 SUPPORT_URL="https://github.com/<your-user>/<your-repo>" \
 ./build.sh
 ```
@@ -62,12 +62,27 @@ That generates:
 
 ## Publish
 
-Commit and push the generated `dist/` artifacts to the URL you used in `RAW_BASE_URL`.
+Commit and push the generated `dist/` artifacts to the URL you used in `ARTIFACT_BASE_URL`.
+
+If you want the `.plg` to install from GitHub release assets instead of raw branch files, build like this:
+
+```bash
+VERSION="$(cat VERSION)"
+ARTIFACT_BASE_URL="https://github.com/<your-user>/<your-repo>/releases/download/v${VERSION}" \
+PACKAGE_SUBDIR="" \
+SUPPORT_URL="https://github.com/<your-user>/<your-repo>" \
+./build.sh
+```
+
+In that mode, upload these two files as release assets:
+
+- `dist/restic.plg`
+- `dist/packages/restic-<version>-noarch-1.txz`
 
 After that, install the plugin in Unraid from:
 
 ```text
-https://raw.githubusercontent.com/<your-user>/<your-repo>/main/dist/restic.plg
+https://github.com/<your-user>/<your-repo>/releases/download/v<version>/restic.plg
 ```
 
 ## Runtime Behavior
