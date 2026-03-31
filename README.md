@@ -2,6 +2,8 @@
 
 Minimal Unraid 7 plugin that installs and manages the latest stable `restic` release.
 
+Do not use `v2026.03.31.1`. That release had an invalid `.plg` XML file and Unraid rejected it during installation. Use `v2026.03.31.2` or newer.
+
 The plugin keeps a persisted copy of the binary on the flash drive, exposes it as `/usr/local/bin/restic`, and adds a very small settings page that shows:
 
 - installed version

@@ -9,6 +9,7 @@ const RESTIC_BIN_DIR = RESTIC_DATA_DIR . '/bin';
 const RESTIC_STATE_FILE = RESTIC_DATA_DIR . '/state.json';
 const RESTIC_PERSISTENT_BINARY = RESTIC_BIN_DIR . '/restic';
 const RESTIC_RUNTIME_BINARY = '/usr/local/bin/restic';
+const RESTIC_WRAPPER_BINARY = RESTIC_PLUGIN_DIR . '/bin/restic-wrapper';
 const RESTIC_MANAGER_PATH = '/usr/local/sbin/restic-manager';
 const RESTIC_RELEASE_API = 'https://api.github.com/repos/restic/restic/releases/latest';
 const RESTIC_HTTP_USER_AGENT = 'unraid-restic-plugin';
@@ -37,6 +38,8 @@ final class ResticManager
         if ($installedVersion !== null && $latestVersion !== null) {
             $updateAvailable = version_compare($installedVersion, $latestVersion, '<');
         }
+
+        self::ensureRuntimeLink();
 
         $runtimeLink = null;
         if (is_link(RESTIC_RUNTIME_BINARY)) {
@@ -73,10 +76,10 @@ final class ResticManager
         $currentVersion = self::hasPersistentBinary() ? self::detectInstalledVersion() : null;
 
         if ($currentVersion !== null && version_compare($currentVersion, $release['version'], '>=')) {
-            self::syncRuntimeBinary();
+        self::ensureRuntimeLink();
 
-            return [
-                'message' => sprintf('restic %s is already installed.', $currentVersion),
+        return [
+            'message' => sprintf('restic %s is already installed.', $currentVersion),
                 'status' => self::status(true),
             ];
         }
@@ -119,7 +122,7 @@ final class ResticManager
             'installed_at' => gmdate(DATE_ATOM),
         ]);
 
-        self::syncRuntimeBinary();
+        self::ensureRuntimeLink();
 
         return [
             'message' => sprintf('Installed restic %s.', $release['version']),
@@ -129,11 +132,10 @@ final class ResticManager
 
     public static function ensureRuntime(): array
     {
+        self::ensureRuntimeLink();
         if (!self::hasPersistentBinary()) {
             return self::installLatest();
         }
-
-        self::syncRuntimeBinary();
 
         return [
             'message' => sprintf('Runtime ready for restic %s.', self::detectInstalledVersion() ?? 'unknown'),
@@ -145,7 +147,7 @@ final class ResticManager
     {
         if (is_link(RESTIC_RUNTIME_BINARY)) {
             $target = readlink(RESTIC_RUNTIME_BINARY);
-            if ($target === RESTIC_PERSISTENT_BINARY) {
+            if ($target === RESTIC_WRAPPER_BINARY) {
                 self::deleteIfExists(RESTIC_RUNTIME_BINARY);
             }
         }
@@ -276,16 +278,19 @@ final class ResticManager
         return isset($state['installed_version']) ? (string) $state['installed_version'] : null;
     }
 
-    private static function syncRuntimeBinary(): void
+    private static function ensureRuntimeLink(): void
     {
-        if (!self::hasPersistentBinary()) {
-            throw new \RuntimeException('No managed restic binary is installed.');
+        if (!is_file(RESTIC_WRAPPER_BINARY) || !is_executable(RESTIC_WRAPPER_BINARY)) {
+            throw new \RuntimeException(sprintf(
+                'Missing restic wrapper at %s.',
+                RESTIC_WRAPPER_BINARY
+            ));
         }
 
         if (file_exists(RESTIC_RUNTIME_BINARY) || is_link(RESTIC_RUNTIME_BINARY)) {
             if (is_link(RESTIC_RUNTIME_BINARY)) {
                 $target = readlink(RESTIC_RUNTIME_BINARY);
-                if ($target === RESTIC_PERSISTENT_BINARY) {
+                if ($target === RESTIC_WRAPPER_BINARY) {
                     return;
                 }
 
@@ -298,7 +303,7 @@ final class ResticManager
             }
         }
 
-        if (!symlink(RESTIC_PERSISTENT_BINARY, RESTIC_RUNTIME_BINARY)) {
+        if (!symlink(RESTIC_WRAPPER_BINARY, RESTIC_RUNTIME_BINARY)) {
             throw new \RuntimeException(sprintf(
                 'Unable to create runtime link at %s.',
                 RESTIC_RUNTIME_BINARY

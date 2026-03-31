@@ -17,7 +17,7 @@ PLG_TEMPLATE="${ROOT_DIR}/templates/${NAME}.plg.in"
 PLG_PATH="${DIST_DIR}/${NAME}.plg"
 
 mkdir -p "${PACKAGE_DIR}"
-rm -f "${PACKAGE_PATH}" "${PLG_PATH}"
+rm -f "${PACKAGE_DIR}"/${NAME}-*-noarch-1.txz "${PLG_PATH}"
 
 export COPYFILE_DISABLE=1
 tar -C "${ROOT_DIR}/source" -cJf "${PACKAGE_PATH}" .

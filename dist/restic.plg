@@ -2,22 +2,28 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name "restic">
 <!ENTITY author "Till Hermsen">
-<!ENTITY launch "Settings/restic">
+<!ENTITY launch "Settings/Restic">
 <!ENTITY plugdir "/usr/local/emhttp/plugins/&name;">
-<!ENTITY pluginURL "https://github.com/tillh/unraid-restic-plugin/releases/download/v2026.03.31.1/restic.plg">
-<!ENTITY version "2026.03.31.1">
-<!ENTITY packageURL "https://github.com/tillh/unraid-restic-plugin/releases/download/v2026.03.31.1/restic-2026.03.31.1-noarch-1.txz">
-<!ENTITY md5 "ad655e5ed6b07378ba99564eafddf6d3">
+<!ENTITY pluginURL "https://github.com/tillh/unraid-restic-plugin/releases/download/v2026.03.31.2/restic.plg">
+<!ENTITY version "2026.03.31.2">
+<!ENTITY packageURL "https://github.com/tillh/unraid-restic-plugin/releases/download/v2026.03.31.2/restic-2026.03.31.2-noarch-1.txz">
+<!ENTITY md5 "c97da3e5eedbd9de42aab9a9a46f7ebb">
 <!ENTITY support "https://github.com/tillh/unraid-restic-plugin">
 ]>
 <PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" icon="archive" support="&support;" min="7.0.0">
-  <CHANGES>
-### 2026.03.31.1
+  <CHANGES><![CDATA[
+### 2026.03.31.2
 
+- Persist the plugin file properly so Unraid lists it as installed
+- Expose `/usr/local/bin/restic` immediately via a managed wrapper
 - Initial release
 - Installs and manages the latest stable restic release
 - Adds a minimal status, update and remove UI for Unraid 7
-  </CHANGES>
+  ]]></CHANGES>
+
+  <FILE Name="/boot/config/plugins/&name;.plg">
+    <URL>&pluginURL;</URL>
+  </FILE>
 
   <FILE Name="/boot/config/plugins/&name;/restic-&version;-noarch-1.txz" Run="upgradepkg --install-new">
     <URL>&packageURL;</URL>
@@ -44,8 +50,9 @@ echo "";
   <FILE Run="/bin/bash" Method="remove">
     <INLINE>
 /usr/local/sbin/restic-manager remove || true;
-removepkg restic >/dev/null 2>&1 || true;
+removepkg restic &gt;/dev/null 2&gt;&amp;1 || true;
 rm -rf &plugdir;
+rm -f /boot/config/plugins/&name;.plg;
 rm -rf /boot/config/plugins/&name;
     </INLINE>
   </FILE>

@@ -1,0 +1,11 @@
+#!/bin/bash
+set -euo pipefail
+
+REAL_BINARY="/boot/config/plugins/restic/bin/restic"
+
+if [[ ! -x "${REAL_BINARY}" ]]; then
+  echo "restic is not installed yet. Run 'restic-manager install' or use Settings -> Restic." >&2
+  exit 127
+fi
+
+exec "${REAL_BINARY}" "$@"
